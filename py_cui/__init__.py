@@ -119,6 +119,8 @@ class PyCUI:
 
         self._title = "PyCUI Window"
 
+        self._title = "PyCUI Window"
+
         # When this is not set, the escape character delay
         # is too long for exiting focus mode
         os.environ.setdefault("ESCDELAY", "25")
@@ -149,7 +151,8 @@ class PyCUI:
             )
         else:
             self._init_status_bar_text = (
-                "Press arrow Keys to move between widgets. " "Enter to enter focus mode."
+                "Press arrow Keys to move between widgets. "
+                "Enter to enter focus mode."
             )
         self.status_bar = py_cui.statusbar.StatusBar(
             self._init_status_bar_text, BLACK_ON_WHITE, root=self
@@ -160,7 +163,10 @@ class PyCUI:
         self._height = height
         self._width = width
         self._height = (
-            self._height - self.title_bar.get_height() - self.status_bar.get_height() - 2
+            self._height
+            - self.title_bar.get_height()
+            - self.status_bar.get_height()
+            - 2
         )
 
         # Logging object initialization for py_cui
@@ -407,7 +413,9 @@ class PyCUI:
             if self._logger is not None:
                 self._logger._live_debug_element._assign_renderer(self._renderer)
         except py_cui.errors.PyCUIError:
-            self._logger.debug("Renderer already assigned to popup or live-debug elements")
+            self._logger.debug(
+                "Renderer already assigned to popup or live-debug elements"
+            )
 
     def toggle_unicode_borders(self) -> None:
         """Function for toggling unicode based border rendering"""
@@ -507,7 +515,16 @@ class PyCUI:
 
         id = len(self.get_widgets().keys())
         new_scroll_menu = py_cui.widgets.ScrollMenu(
-            id, title, self._grid, row, column, row_span, column_span, padx, pady, self._logger
+            id,
+            title,
+            self._grid,
+            row,
+            column,
+            row_span,
+            column_span,
+            padx,
+            pady,
+            self._logger,
         )
         if self._renderer is not None:
             new_scroll_menu._assign_renderer(self._renderer)
@@ -746,12 +763,23 @@ class PyCUI:
 
         id = len(self.get_widgets().keys())
         new_label = py_cui.widgets.Label(
-            id, title, self._grid, row, column, row_span, column_span, padx, pady, self._logger
+            id,
+            title,
+            self._grid,
+            row,
+            column,
+            row_span,
+            column_span,
+            padx,
+            pady,
+            self._logger,
         )
         if self._renderer is not None:
             new_label._assign_renderer(self._renderer)
         self.get_widgets()[id] = new_label
-        self._logger.info(f"Adding widget {title} w/ ID {id} of type {str(type(new_label))}")
+        self._logger.info(
+            f"Adding widget {title} w/ ID {id} of type {str(type(new_label))}"
+        )
         return new_label
 
     def add_block_label(
@@ -809,7 +837,9 @@ class PyCUI:
         if self._renderer is not None:
             new_label._assign_renderer(self._renderer)
         self.get_widgets()[id] = new_label
-        self._logger.info(f"Adding widget {title} w/ ID {id} of type {str(type(new_label))}")
+        self._logger.info(
+            f"Adding widget {title} w/ ID {id} of type {str(type(new_label))}"
+        )
         return new_label
 
     def add_button(
@@ -869,7 +899,9 @@ class PyCUI:
         self.get_widgets()[id] = new_button
         if self._selected_widget is None:
             self.set_selected_widget(id)
-        self._logger.info(f"Adding widget {title} w/ ID {id} of type {str(type(new_button))}")
+        self._logger.info(
+            f"Adding widget {title} w/ ID {id} of type {str(type(new_button))}"
+        )
         return new_button
 
     def add_slider(
@@ -939,7 +971,9 @@ class PyCUI:
         if self._renderer is not None:
             new_slider._assign_renderer(self._renderer)
         self.get_widgets()[id] = new_slider
-        self._logger.info(f"Adding widget {title} w/ ID {id} of type {str(type(new_slider))}")
+        self._logger.info(
+            f"Adding widget {title} w/ ID {id} of type {str(type(new_slider))}"
+        )
         return new_slider
 
     def forget_widget(self, widget: "py_cui.widgets.Widget") -> None:
@@ -967,7 +1001,9 @@ class PyCUI:
         else:
             self.get_widgets()[widget.get_id()] = None
 
-    def get_element_at_position(self, x: int, y: int) -> Optional["py_cui.ui.UIElement"]:
+    def get_element_at_position(
+        self, x: int, y: int
+    ) -> Optional["py_cui.ui.UIElement"]:
         """Returns containing widget for character position
 
         Parameters
@@ -1067,37 +1103,33 @@ class PyCUI:
             A list of the neighbor widget ids
         """
 
-        if not direction in py_cui.keys.ARROW_KEYS:
+        if direction not in (py_cui.keys.KEY_UP_ARROW, py_cui.keys.KEY_DOWN_ARROW):
             return None
 
         num_rows, _ = self._grid.get_dimensions()
         row_start, col_start = widget.get_grid_cell()
-        row_span, col_span = widget.get_grid_cell_spans()
+        row_span, _ = widget.get_grid_cell_spans()
         id_list = []
 
         if direction == py_cui.keys.KEY_UP_ARROW:
-            row_range_start = 0
-            row_range_stop = row_start
+            scope = range(row_start - 1, -1, -1)
         else:
-            row_range_start = row_start + row_span
-            row_range_stop = num_rows
+            scope = range(row_start + row_span, num_rows)
 
-        for row in range(row_range_start, row_range_stop):
-            for col in range(col_start, col_start + col_span):
-                for widget_id in self.get_widgets().keys():
-                    item_value = self.get_widgets()[widget_id]
-                    if item_value is not None:
-                        if (
-                            item_value._is_row_col_inside(row, col)
-                            and widget_id not in id_list
-                        ):
-                            id_list.append(widget_id)
+        widgets = self.get_widgets()
+        ids = widgets.keys()
 
-        if direction == py_cui.keys.KEY_UP_ARROW:
-            id_list.reverse()
+        for row in scope:
+            row_items = [
+                w for w in ids if widgets[w]._row == row and widgets[w].is_selectable()
+            ]
+            sorted_items = sorted(
+                row_items, key=lambda x: abs(col_start - widgets[x]._column)
+            )
+            id_list.extend(sorted_items)
 
         self._logger.debug(
-            f"Neighbors with ids {id_list} for cell {row_start},{col_start} span {row_span},{col_span}"
+            f"Neighbors with ids {id_list} for cell {row_start},{col_start}"
         )
 
         return id_list
@@ -1239,30 +1271,38 @@ class PyCUI:
         num_widgets: int = len(self.get_widgets())
         current_widget_num: Optional[int] = self._selected_widget
 
-        if current_widget_num is None:
-            return
+        if current_widget_num is not None:
+            if not reverse:
+                next_widget_num = current_widget_num + 1
+                if self.get_widgets()[next_widget_num] is None:
+                    if next_widget_num == num_widgets:
+                        next_widget_num = 0
+                    next_widget_num = next_widget_num + 1
+                cycle_key = self._forward_cycle_key
+            else:
+                next_widget_num = current_widget_num - 1
+                if self.get_widgets()[next_widget_num] is None:
+                    if next_widget_num < 0:
+                        next_widget_num = num_widgets - 1
+                    next_widget_num = next_widget_num + 1
+                cycle_key = self._reverse_cycle_key
 
-        if reverse:
-            next_widget_num = current_widget_num - 1
-            if next_widget_num < 0:
-                next_widget_num = num_widgets - 1
-            cycle_key = self._reverse_cycle_key
-        else:
-            next_widget_num = current_widget_num + 1
-            if next_widget_num >= num_widgets:
-                next_widget_num = 0
-            cycle_key = self._forward_cycle_key
-
-        current_widget = self.get_widgets().get(current_widget_num)
-        next_widget = self.get_widgets().get(next_widget_num)
-
-        if current_widget is not None and next_widget is not None:
-            if self._in_focused_mode and cycle_key in current_widget._key_commands.keys():
+            current_widget_id: int = current_widget_num
+            next_widget_id: int = next_widget_num
+        current_widget = self.get_widgets()[current_widget_id]
+        next_widget = self.get_widgets()[next_widget_id]
+        if current_widget and next_widget is not None:  # pls check again
+            if (
+                self._in_focused_mode
+                and cycle_key in current_widget._key_commands.keys()
+            ):
                 # In the event that we are focusing on a widget with that key defined, we do not cycle.
                 return
             self.move_focus(next_widget, auto_press_buttons=False)
 
-    def add_key_command(self, key: Union[int, List[int]], command: Callable[[], Any]) -> None:
+    def add_key_command(
+        self, key: Union[int, List[int]], command: Callable[[], Any]
+    ) -> None:
         """Function that adds a keybinding to the CUI when in overview mode
 
         Parameters
@@ -1281,7 +1321,9 @@ class PyCUI:
 
     # Popup functions. Used to display messages, warnings, and errors to the user.
 
-    def show_message_popup(self, title: str, text: str, color: int = WHITE_ON_BLACK) -> None:
+    def show_message_popup(
+        self, title: str, text: str, color: int = WHITE_ON_BLACK
+    ) -> None:
         """Shows a message popup
 
         Parameters
@@ -1545,7 +1587,13 @@ class PyCUI:
             self._logger,
         )
 
-        self._logger.debug(f"Opened {str(type(self._popup))} popup with type {popup_type}")
+        self._logger.debug(
+            f"Opened {str(type(self._popup))} popup with type {popup_type}"
+        )
+
+        self._logger.debug(
+            f"Opened {str(type(self._popup))} popup with type {popup_type}"
+        )
 
     def increment_loading_bar(self) -> None:
         """Increments progress bar if loading bar popup is open"""
@@ -1746,11 +1794,15 @@ class PyCUI:
                 self.set_selected_widget(neighbor)
                 widget = self.get_widgets()[self._selected_widget]
                 if widget is not None:
-                    self._logger.debug(f"Navigated to neighbor widget {widget.get_title()}")
+                    self._logger.debug(
+                        f"Navigated to neighbor widget {widget.get_title()}"
+                    )
 
         # if we have a popup, that takes key control from both overview and focus mode
         elif self._popup is not None:
-            self._logger.debug(f"Popup {self._popup.get_title()} handling key {key_pressed}")
+            self._logger.debug(
+                f"Popup {self._popup.get_title()} handling key {key_pressed}"
+            )
             self._popup._handle_key_press(key_pressed)
 
     def _draw(self, stdscr) -> None:
@@ -1786,7 +1838,9 @@ class PyCUI:
 
         # Loop where key_pressed is the last character pressed. Wait for exit key while no popup or focus mode
         while (
-            key_pressed != self._exit_key or self._in_focused_mode or self._popup is not None
+            key_pressed != self._exit_key
+            or self._in_focused_mode
+            or self._popup is not None
         ):
 
             try:
