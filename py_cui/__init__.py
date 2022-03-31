@@ -22,7 +22,7 @@ import logging  # Use logging library for debug purposes
 # there is a open source windows-curses module that adds curses support
 # for python on windows
 import curses
-from typing import Any, Union, Callable, List, Dict, Optional, Tuple
+from typing import Any, Callable, List, Dict, Optional, Tuple
 
 # py_cui imports
 import py_cui
@@ -39,7 +39,7 @@ import py_cui.errors
 from py_cui.colors import *
 
 # Version number
-__version__ = "0.1.5"
+__version__ = "0.1.4"
 
 
 def fit_text(width: int, text: str, center: bool = False) -> str:
@@ -116,8 +116,6 @@ class PyCUI:
         simulated_terminal: List[int] = None,
     ):
         """Initializer for PyCUI class"""
-
-        self._title = "PyCUI Window"
 
         self._title = "PyCUI Window"
 
@@ -1080,7 +1078,8 @@ class PyCUI:
             id_list.reverse()
 
         self._logger.debug(
-            f"Neighbors with ids {id_list} for cell {row_start},{col_start} span {row_span},{col_span}"
+            f"Neighbors with ids {id_list} for cell \
+                             {row_start},{col_start} span {row_span},{col_span}"
         )
 
         return id_list
@@ -1268,56 +1267,46 @@ class PyCUI:
             Default false. If true, cycle widgets in reverse order.
         """
 
-        num_widgets: int = len(self.get_widgets())
+        num_widgets = len(self.get_widgets().keys())
         current_widget_num: Optional[int] = self._selected_widget
 
-        if current_widget_num is not None:
-            if not reverse:
-                next_widget_num = current_widget_num + 1
-                if self.get_widgets()[next_widget_num] is None:
-                    if next_widget_num == num_widgets:
-                        next_widget_num = 0
-                    next_widget_num = next_widget_num + 1
-                cycle_key = self._forward_cycle_key
-            else:
-                next_widget_num = current_widget_num - 1
-                if self.get_widgets()[next_widget_num] is None:
-                    if next_widget_num < 0:
-                        next_widget_num = num_widgets - 1
-                    next_widget_num = next_widget_num + 1
-                cycle_key = self._reverse_cycle_key
+        if current_widget_num is None:
+            return
 
-            current_widget_id: int = current_widget_num
-            next_widget_id: int = next_widget_num
-        current_widget = self.get_widgets()[current_widget_id]
-        next_widget = self.get_widgets()[next_widget_id]
-        if current_widget and next_widget is not None:  # pls check again
-            if (
-                self._in_focused_mode
-                and cycle_key in current_widget._key_commands.keys()
-            ):
-                # In the event that we are focusing on a widget with that key defined, we do not cycle.
-                return
-            self.move_focus(next_widget, auto_press_buttons=False)
+        if reverse:
+            next_widget_num = current_widget_num - 1
+            if next_widget_num < 0:
+                next_widget_num = num_widgets - 1
+            cycle_key = self._reverse_cycle_key
+        else:
+            next_widget_num = current_widget_num + 1
+            if next_widget_num >= num_widgets:
+                next_widget_num = 0
+            cycle_key = self._forward_cycle_key
 
-    def add_key_command(
-        self, key: Union[int, List[int]], command: Callable[[], Any]
-    ) -> None:
+        current_widget = self.get_widgets().get(current_widget_num)
+        next_widget = self.get_widgets().get(next_widget_num)
+
+        if (
+            current_widget is not None
+            and next_widget is not None
+            and self._in_focused_mode
+            and cycle_key in current_widget._key_commands.keys()
+        ):
+            return
+
+    def add_key_command(self, key: int, command: Callable[[], Any]) -> None:
         """Function that adds a keybinding to the CUI when in overview mode
 
         Parameters
         ----------
         key : py_cui.keys.KEY_*
-            ascii keycode used to map the key
+            The key bound to the command
         command : Function
             A no-arg or lambda function to fire on keypress
         """
 
-        if isinstance(key, list):
-            for value in key:
-                self._keybindings[value] = command
-        else:
-            self._keybindings[key] = command
+        self._keybindings[key] = command
 
     # Popup functions. Used to display messages, warnings, and errors to the user.
 
@@ -1585,10 +1574,6 @@ class PyCUI:
             py_cui.WHITE_ON_BLACK,
             self._renderer,
             self._logger,
-        )
-
-        self._logger.debug(
-            f"Opened {str(type(self._popup))} popup with type {popup_type}"
         )
 
         self._logger.debug(
